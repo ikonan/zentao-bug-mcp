@@ -51,14 +51,17 @@ AI 会调用 `zentao_get_bug` 拿到标题、步骤和截图本地路径，读�
 
 仓库内置 [`skills/fix-zentao-bug`](skills/fix-zentao-bug/SKILL.md)，把修 bug 的最佳实践固化成工作流：取 bug → 逐张查看截图 → 完整保留标题复述 → 最小改动修复 → 验证 → 统一格式汇报，并约束全程只读禅道。
 
-先配好上面的 MCP，再从本仓库复制安装：
+先配好上面的 MCP，然后一行安装（[skills CLI](https://skills.sh)，自动识别 Claude Code / Cursor / Codex 等 agent）：
+
+```bash
+npx skills add ikonan/zentao-bug-mcp
+```
+
+或手动复制到 Qoder：
 
 ```bash
 git clone https://github.com/ikonan/zentao-bug-mcp.git
-# Qoder
 cp -r zentao-bug-mcp/skills/fix-zentao-bug ~/.qoder-cn/skills/
-# Claude Code
-cp -r zentao-bug-mcp/skills/fix-zentao-bug ~/.claude/skills/
 ```
 
 重启会话后直接丢禅道 bug 链接即可自动触发，也可用 `/fix-zentao-bug <链接>` 手动调用。
