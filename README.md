@@ -47,6 +47,22 @@ AI 会调用 `zentao_get_bug` 拿到标题、步骤和截图本地路径，读�
 
 返回 Markdown 报告：完整标题、状态/严重程度/优先级/指派人、重现步骤纯文本（图片位置替换为本地路径）、附件清单、本地文件绝对路径列表。图片下载到系统临时目录 `zentao-mcp/bug-{id}/`，AI 用自身的读文件工具即可查看截图。
 
+## 配套 Skill
+
+仓库内置 [`skills/fix-zentao-bug`](skills/fix-zentao-bug/SKILL.md)，把修 bug 的最佳实践固化成工作流：取 bug → 逐张查看截图 → 完整保留标题复述 → 最小改动修复 → 验证 → 统一格式汇报，并约束全程只读禅道。
+
+先配好上面的 MCP，再从本仓库复制安装：
+
+```bash
+git clone https://github.com/ikonan/zentao-bug-mcp.git
+# Qoder
+cp -r zentao-bug-mcp/skills/fix-zentao-bug ~/.qoder-cn/skills/
+# Claude Code
+cp -r zentao-bug-mcp/skills/fix-zentao-bug ~/.claude/skills/
+```
+
+重启会话后直接丢禅道 bug 链接即可自动触发，也可用 `/fix-zentao-bug <链接>` 手动调用。
+
 ## 环境变量
 
 | 变量 | 必填 | 说明 |
