@@ -1,0 +1,40 @@
+{
+  "name": "zentao-bug-mcp",
+  "version": "0.1.0",
+  "description": "ZenTao bug MCP server: paste a bug link, get the title/steps and downloaded screenshots so AI coding agents can fix the bug. 禅道 bug 抓取 MCP，丢链接自动取描述和截图。",
+  "type": "module",
+  "bin": {
+    "zentao-bug-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "test": "tsx --test test/url.test.ts test/html.test.ts test/e2e.test.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "zentao",
+    "mcp",
+    "model-context-protocol",
+    "bug",
+    "bugfix",
+    "禅道"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "cheerio": "^1.2.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
