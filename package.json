@@ -27,6 +27,14 @@
     "禅道"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ikonan/zentao-bug-mcp.git"
+  },
+  "homepage": "https://github.com/ikonan/zentao-bug-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/ikonan/zentao-bug-mcp/issues"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",
     "cheerio": "^1.2.0",
