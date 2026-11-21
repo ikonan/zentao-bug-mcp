@@ -19,6 +19,36 @@ const bug123 = {
     "<p>验证码没有变化&nbsp;再试一次</p><p><img src=\"file-read-502.png\" /></p>" +
     '<p><img src="/zentao/index.php?m=file&f=read&t=png&fileID=501" /></p>',
   files: [{ id: 503, title: "日志.txt", pathname: "202611/abc.txt", extension: "txt", size: 100 }],
+  actions: [
+    { id: "1", actor: "lisi", action: "opened", date: "2026-11-01 09:00:00", comment: "<br />", history: [] },
+    {
+      id: "2",
+      actor: "wangwu",
+      action: "commented",
+      date: "2026-11-02 10:00:00",
+      comment: '<p>复现了，见截图<img src="/zentao/index.php?m=file&f=read&t=png&fileID=601" /></p>',
+      history: [],
+    },
+    {
+      id: "3",
+      actor: "zhangsan",
+      action: "edited",
+      date: "2026-11-03 10:00:00",
+      comment: '<p>补充说明<img src="file-read-501.png" /></p>',
+      history: [],
+    },
+    {
+      id: "4",
+      actor: "yangxuan",
+      action: "resolved",
+      date: "2026-11-04 10:00:00",
+      comment: "<br />",
+      history: [
+        { field: "resolution", old: "", new: "fixed", fieldName: "解决方案" },
+        { field: "status", old: "active", new: "resolved", fieldName: "状态" },
+      ],
+    },
+  ],
 };
 
 const bug124 = {
@@ -31,11 +61,43 @@ const bug124 = {
   files: [],
 };
 
+const bug125 = {
+  id: 125,
+  title: "Record 形态 actions 的 bug",
+  severity: 3,
+  pri: 3,
+  status: "active",
+  steps: "<p>步骤</p>",
+  files: [],
+  actions: {
+    "1": {
+      id: "1",
+      actor: "tester",
+      action: "activated",
+      date: "2026-11-05 10:00:00",
+      comment: '<p>还有问题<img src="/zentao/data/upload/1/x.png" /></p>',
+      history: [],
+    },
+    "2": {
+      id: "2",
+      actor: "tester",
+      action: "commented",
+      date: "2026-11-06 10:00:00",
+      comment: '<p>失效图<img src="/zentao/index.php?m=file&f=read&t=png&fileID=999" /></p>',
+      history: [],
+    },
+  },
+};
+
 export async function startMockZenTao() {
   const state = {
     validTokens: new Set(),
     restEnabled: true,
     tokenCounter: 0,
+    fileHits: {},
+  };
+  const hit = (id) => {
+    state.fileHits[id] = (state.fileHits[id] ?? 0) + 1;
   };
 
   const server = http.createServer((req, res) => {
@@ -78,6 +140,7 @@ export async function startMockZenTao() {
       const id = Number(bugMatch[1]);
       if (id === 123) return json(200, bug123);
       if (id === 124) return json(200, bug124);
+      if (id === 125) return json(200, bug125);
       return json(404, { error: "Bug not found" });
     }
 
@@ -87,6 +150,7 @@ export async function startMockZenTao() {
       const token = req.headers["token"];
       if (!state.validTokens.has(token)) return json(401, { error: "Not login" });
       const id = restFile[1];
+      hit(id);
       if (id === "999") return json(404, { error: "File not found" });
       if (id === "503") {
         res.writeHead(200, { "content-type": "text/plain" });
@@ -101,6 +165,7 @@ export async function startMockZenTao() {
       const cookie = req.headers.cookie ?? "";
       const sid = cookie.match(/zentaosid=([^;]+)/)?.[1] ?? url.searchParams.get("zentaosid");
       if (!state.validTokens.has(sid)) return toLogin();
+      hit(fileID);
       if (fileID === "999") {
         res.writeHead(404, { "content-type": "text/plain" });
         return res.end("not found");
@@ -109,6 +174,15 @@ export async function startMockZenTao() {
         res.writeHead(200, { "content-type": "text/plain" });
         return res.end("log content");
       }
+      res.writeHead(200, { "content-type": "image/png" });
+      return res.end(PNG_1x1);
+    }
+
+    if (p.startsWith("/zentao/data/upload/")) {
+      const cookie = req.headers.cookie ?? "";
+      const sid = cookie.match(/zentaosid=([^;]+)/)?.[1] ?? url.searchParams.get("zentaosid");
+      if (!state.validTokens.has(sid)) return toLogin();
+      hit("upload:" + p);
       res.writeHead(200, { "content-type": "image/png" });
       return res.end(PNG_1x1);
     }

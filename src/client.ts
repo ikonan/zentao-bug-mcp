@@ -9,6 +9,23 @@ export interface ZenTaoFile {
   size?: number;
 }
 
+export interface ZenTaoActionHistory {
+  field?: string;
+  fieldName?: string;
+  old?: unknown;
+  new?: unknown;
+}
+
+export interface ZenTaoAction {
+  id?: string | number;
+  actor?: unknown;
+  action?: string;
+  date?: string;
+  comment?: unknown;
+  history?: ZenTaoActionHistory[] | Record<string, ZenTaoActionHistory>;
+  [key: string]: unknown;
+}
+
 export interface ZenTaoBug {
   id: number;
   title: string;
@@ -20,6 +37,7 @@ export interface ZenTaoBug {
   openedBy?: unknown;
   productID?: number;
   files?: ZenTaoFile[] | Record<string, ZenTaoFile>;
+  actions?: ZenTaoAction[] | Record<string, ZenTaoAction>;
   [key: string]: unknown;
 }
 

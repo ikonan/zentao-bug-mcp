@@ -3,19 +3,10 @@ import path from "node:path";
 import type { Config } from "./config.js";
 import type { ZenTaoClient, ZenTaoFile } from "./client.js";
 import { parseBugId } from "./url.js";
-import { extractImages, stepsToText } from "./html.js";
+import { extractImages, stepsToText, type ImageRef } from "./html.js";
+import { normalizeActions, collectCommentImages, renderTimeline, personName } from "./actions.js";
 
 const SEVERITY: Record<number, string> = { 1: "致命", 2: "严重", 3: "一般", 4: "轻微" };
-
-function personName(v: unknown): string {
-  if (!v) return "-";
-  if (typeof v === "string") return v;
-  if (typeof v === "object") {
-    const o = v as { realname?: string; account?: string };
-    return o.realname || o.account || "-";
-  }
-  return String(v);
-}
 
 function sanitize(name: string): string {
   return name.replace(/[/\\:*?"<>|]/g, "_").trim().slice(0, 80) || "file";
@@ -33,12 +24,22 @@ function imgExt(url: string): string {
 export async function buildBugReport(
   client: ZenTaoClient,
   cfg: Config,
-  input: { bug: string; downloadAttachments?: boolean }
+  input: { bug: string; downloadAttachments?: boolean; includeComments?: boolean }
 ): Promise<string> {
   const id = parseBugId(input.bug, cfg.baseUrl);
   const bug = await client.getBug(id);
+  const includeComments = input.includeComments !== false;
   const stepsHtml = typeof bug.steps === "string" ? bug.steps : "";
-  const images = extractImages(stepsHtml, cfg.baseUrl);
+  const actions = includeComments ? normalizeActions(bug.actions) : [];
+
+  const imageMap = new Map<string, ImageRef>();
+  for (const img of [
+    ...extractImages(stepsHtml, cfg.baseUrl),
+    ...collectCommentImages(actions, cfg.baseUrl),
+  ]) {
+    if (!imageMap.has(img.key)) imageMap.set(img.key, img);
+  }
+  const images = [...imageMap.values()];
 
   const filesRaw = bug.files;
   const allFiles: ZenTaoFile[] = Array.isArray(filesRaw)
@@ -62,25 +63,52 @@ export async function buildBugReport(
 
   const tasks: Array<() => Promise<void>> = [];
 
-  images.forEach((img, i) => {
+  // 同 fileID 可能以不同 URL 出现在步骤和评论中，按 fileID 分组只下载一次
+  const groups = new Map<string, ImageRef[]>();
+  for (const img of images) {
+    const key = img.fileID ? `id:${img.fileID}` : `url:${img.key}`;
+    const group = groups.get(key);
+    if (group) group.push(img);
+    else groups.set(key, [img]);
+  }
+  const entries = [...groups.values()].map((group) => ({ group, first: group[0] }));
+  const usedNames = new Set(
+    entries.filter((e) => e.first.fileID).map((e) => `img-${e.first.fileID}${imgExt(e.first.absoluteUrl)}`)
+  );
+  let fallbackSeq = 0;
+  const downloads = entries.map(({ group, first }) => {
+    let name: string;
+    if (first.fileID) {
+      name = `img-${first.fileID}${imgExt(first.absoluteUrl)}`;
+    } else {
+      do {
+        name = `img-${++fallbackSeq}${imgExt(first.absoluteUrl)}`;
+      } while (usedNames.has(name));
+    }
+    usedNames.add(name);
+    return { group, first, name };
+  });
+
+  for (const { group, first, name } of downloads) {
     tasks.push(async () => {
-      const name = `img-${img.fileID ?? i + 1}${imgExt(img.absoluteUrl)}`;
       const dest = path.join(dir, name);
       try {
-        if (img.fileID) {
-          await client.downloadFileByID(img.fileID, dest);
+        if (first.fileID) {
+          await client.downloadFileByID(first.fileID, dest);
         } else {
-          await client.downloadFile(img.absoluteUrl, dest);
+          await client.downloadFile(first.absoluteUrl, dest);
         }
-        replacements.set(img.key, `![${name}](${dest})`);
+        for (const img of group) replacements.set(img.key, `![${name}](${dest})`);
         downloaded.push(dest);
       } catch (e) {
         const reason = e instanceof Error ? e.message : String(e);
-        replacements.set(img.key, `[图片下载失败: ${img.absoluteUrl}（${reason}）]`);
+        for (const img of group) {
+          replacements.set(img.key, `[图片下载失败: ${img.absoluteUrl}（${reason}）]`);
+        }
         failures.push(`${name}: ${reason}`);
       }
     });
-  });
+  }
 
   for (const f of attachments) {
     tasks.push(async () => {
@@ -104,6 +132,7 @@ export async function buildBugReport(
   await Promise.all(tasks.map((t) => t()));
 
   const stepsText = stepsToText(stepsHtml, cfg.baseUrl, replacements) || "（无重现步骤）";
+  const timeline = includeComments ? renderTimeline(actions, cfg.baseUrl, replacements) : [];
   const severity = bug.severity ? `${bug.severity}（${SEVERITY[bug.severity] ?? "?"}）` : "-";
   const lines = [
     `# Bug #${bug.id ?? id}: ${bug.title ?? "(无标题)"}`,
@@ -115,6 +144,7 @@ export async function buildBugReport(
     "## 重现步骤",
     stepsText,
   ];
+  if (timeline.length > 0) lines.push("", "## 评论与动态", ...timeline);
   if (attLines.length > 0) lines.push("", "## 附件", ...attLines);
   if (downloaded.length > 0) {
     lines.push("", "## 本地文件（图片可用 Read 工具直接查看）", ...downloaded.map((p) => `- ${p}`));

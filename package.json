@@ -12,7 +12,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/index.ts",
-    "test": "tsx --test test/url.test.ts test/html.test.ts test/e2e.test.ts",
+    "test": "tsx --test test/url.test.ts test/html.test.ts test/actions.test.ts test/e2e.test.ts",
     "prepublishOnly": "npm run build"
   },
   "engines": {

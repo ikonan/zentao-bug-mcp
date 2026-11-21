@@ -44,8 +44,9 @@ AI 会调用 `zentao_get_bug` 拿到标题、步骤和截图本地路径，读�
 |---|---|---|
 | `bug` | string，必填 | bug 链接（`bug-view-{id}.html` 或 `index.php?m=bug&f=view&bugID={id}`）或纯数字 ID |
 | `downloadAttachments` | boolean，默认 `true` | 是否下载附件列表（内嵌截图始终下载） |
+| `includeComments` | boolean，默认 `true` | 是否输出评论与动态时间线（含评论内嵌图片下载） |
 
-返回 Markdown 报告：完整标题、状态/严重程度/优先级/指派人、重现步骤纯文本（图片位置替换为本地路径）、附件清单、本地文件绝对路径列表。图片下载到系统临时目录 `zentao-mcp/bug-{id}/`，AI 用自身的读文件工具即可查看截图。
+返回 Markdown 报告：完整标题、状态/严重程度/优先级/指派人、重现步骤纯文本（图片位置替换为本地路径）、评论与动态时间线（操作人/时间/字段变更/评论及截图——bug 被激活后补充的遗留问题常在这里）、附件清单、本地文件绝对路径列表。图片下载到系统临时目录 `zentao-mcp/bug-{id}/`，AI 用自身的读文件工具即可查看截图。
 
 ## 配套 Skill
 
@@ -92,7 +93,7 @@ cp -r zentao-bug-mcp/skills/fix-zentao-bug ~/.qoder-cn/skills/
 ```bash
 npm install
 npm run build   # tsc → dist/
-npm test        # 17 个用例，含本地 mock 禅道的端到端测试
+npm test        # 26 个用例，含本地 mock 禅道的端到端测试
 ```
 
 本地调试时客户端配置可改为 `"command": "node", "args": ["/绝对路径/zentao-mcp/dist/index.js"]`。

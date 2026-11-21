@@ -39,6 +39,51 @@ test("完整链路：链接 → 标题/步骤/图片/附件", async () => {
     }
     assert.ok(report.includes("## 附件"));
     assert.ok(!report.includes("下载失败"));
+    assert.ok(report.includes("## 评论与动态"));
+    assert.ok(report.includes("复现了，见截图"));
+    assert.ok(report.includes("wangwu"));
+    assert.ok(report.includes("解决方案: (空) → fixed"));
+    assert.ok(report.includes("![img-601.png]"));
+    assert.ok(
+      report.indexOf("## 重现步骤") < report.indexOf("## 评论与动态") &&
+        report.indexOf("## 评论与动态") < report.indexOf("## 附件"),
+      report
+    );
+    const stat601 = await fs.stat(path.join(dir, "img-601.png"));
+    assert.ok(stat601.size > 0);
+    // steps 两处 + 评论一处同 fileID=501（不同 href）→ 只下载一次
+    assert.equal(mock.state.fileHits["501"], 1);
+  } finally {
+    await mock.close();
+  }
+});
+
+test("includeComments=false：无评论段落、评论图不下载", async () => {
+  const { mock, cfg, client, downloadDir } = await setup();
+  try {
+    const report = await buildBugReport(client, cfg, { bug: "123", includeComments: false });
+    assert.ok(!report.includes("## 评论与动态"));
+    assert.ok(!report.includes("复现了"));
+    await assert.rejects(fs.stat(path.join(downloadDir, "bug-123", "img-601.png")));
+    const stat501 = await fs.stat(path.join(downloadDir, "bug-123", "img-501.png"));
+    assert.ok(stat501.size > 0);
+  } finally {
+    await mock.close();
+  }
+});
+
+test("Record 形态 actions：无 fileID 图 fallback 命名、评论失效图占位", async () => {
+  const { mock, cfg, client, downloadDir } = await setup();
+  try {
+    const report = await buildBugReport(client, cfg, { bug: "125" });
+    assert.ok(report.includes("## 评论与动态"));
+    assert.ok(report.includes("tester · 激活"));
+    assert.ok(report.includes("还有问题"));
+    assert.ok(report.includes("![img-1.png]"));
+    const stat = await fs.stat(path.join(downloadDir, "bug-125", "img-1.png"));
+    assert.ok(stat.size > 0);
+    assert.ok(report.includes("图片下载失败"));
+    assert.ok(report.includes("⚠️ 1 个文件下载失败"));
   } finally {
     await mock.close();
   }
@@ -86,6 +131,7 @@ test("单张图片 404 不影响整体", async () => {
     assert.ok(report.includes("步骤二"));
     assert.ok(report.includes("图片下载失败"));
     assert.ok(report.includes("⚠️ 1 个文件下载失败"));
+    assert.ok(!report.includes("## 评论与动态"));
   } finally {
     await mock.close();
   }

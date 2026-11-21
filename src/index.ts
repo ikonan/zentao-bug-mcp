@@ -27,6 +27,7 @@ server.registerTool(
   {
     description:
       "获取禅道(ZenTao) bug 详情：传入 bug 链接或数字 ID，返回 bug 完整标题（含关键信息）、状态、严重程度、指派人和重现步骤文本，" +
+      "以及评论与动态时间线（操作人/时间/字段变更/评论及截图，激活后补充的遗留问题常在这里），" +
       "并把内嵌截图/附件下载到本地，返回本地绝对路径（图片可用 Read 工具直接查看）。用于根据禅道 bug 定位并修复代码。",
     inputSchema: {
       bug: z
@@ -38,11 +39,16 @@ server.registerTool(
         .optional()
         .default(true)
         .describe("是否下载附件列表中的文件（内嵌截图始终下载）"),
+      includeComments: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe("是否输出评论与动态时间线（含评论内嵌图片下载）"),
     },
   },
-  async ({ bug, downloadAttachments }) => {
+  async ({ bug, downloadAttachments, includeComments }) => {
     try {
-      const text = await buildBugReport(client, cfg, { bug, downloadAttachments });
+      const text = await buildBugReport(client, cfg, { bug, downloadAttachments, includeComments });
       return { content: [{ type: "text", text }] };
     } catch (e) {
       return { isError: true, content: [{ type: "text", text: e instanceof Error ? e.message : String(e) }] };
