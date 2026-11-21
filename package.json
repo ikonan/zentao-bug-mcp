@@ -1,6 +1,6 @@
 {
   "name": "zentao-bug-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "ZenTao bug MCP server: paste a bug link, get the title/steps and downloaded screenshots so AI coding agents can fix the bug. 禅道 bug 抓取 MCP，丢链接自动取描述和截图。",
   "type": "module",
   "bin": {
